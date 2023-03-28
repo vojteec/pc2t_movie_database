@@ -1,1 +1,2 @@
-### pc2t_movie_database
+# PC2T_movie_database
+## Zápočtový projekt pracovní dvojice Semanková&Kuchař
