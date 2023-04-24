@@ -1,0 +1,7 @@
+animovany
+nazov1
+reziser
+2020
+sona
+10
+1,super;10,;

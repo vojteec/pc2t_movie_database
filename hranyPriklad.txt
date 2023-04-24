@@ -1,0 +1,6 @@
+hrany
+nazov2
+reziser2
+2010
+sona,daniel
+1,super;5,;
