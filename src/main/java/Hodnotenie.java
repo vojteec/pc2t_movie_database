@@ -1,6 +1,6 @@
 public class Hodnotenie {
-    private int bodoveHodnotenie;
-    private String slovnyKomantar;
+    private final int bodoveHodnotenie;
+    private final String slovnyKomantar;
 
     public Hodnotenie(int bodoveHodnotenie, String slovnyKomantar) {
         this.bodoveHodnotenie = bodoveHodnotenie;
@@ -13,13 +13,5 @@ public class Hodnotenie {
 
     public String getSlovnyKomantar() {
         return slovnyKomantar;
-    }
-
-    public void setBodoveHodnotenie(int bodoveHodnotenie) {
-        this.bodoveHodnotenie = bodoveHodnotenie;
-    }
-
-    public void setSlovnyKomantar(String slovnyKomantar) {
-        this.slovnyKomantar = slovnyKomantar;
     }
 }

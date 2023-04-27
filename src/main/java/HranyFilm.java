@@ -2,7 +2,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class HranyFilm extends Film {
-    private List<HodnotenieHviezdy> hodnoteniaHviezdy = new ArrayList<>();
+    private final List<HodnotenieHviezdy> hodnoteniaHviezdy = new ArrayList<>();
 
     public HranyFilm(String nazov, String reziser, int rok, List<Osoba> zoznamOsob) {
         super(nazov, reziser, rok, zoznamOsob);

@@ -3,7 +3,7 @@ import java.util.List;
 
 public class AnimovanyFilm extends Film {
     private int minVekDivaka;
-    private List<HodnotenieCislo> hodnoteniaCislo = new ArrayList<>();
+    private final List<HodnotenieCislo> hodnoteniaCislo = new ArrayList<>();
 
     public AnimovanyFilm(String nazov, String reziser, int rok, List<Osoba> zoznamOsob, int minVekDivaka) {
         super(nazov, reziser, rok, zoznamOsob);
