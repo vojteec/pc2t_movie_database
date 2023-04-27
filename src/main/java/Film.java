@@ -44,4 +44,8 @@ public abstract class Film {
     public void setZoznamOsob(List<Osoba> zoznamOsob) {
         this.zoznamOsob = zoznamOsob;
     }
+
+    public void addOsoba(Osoba osoba) {
+        this.zoznamOsob.add(osoba);
+    }
 }

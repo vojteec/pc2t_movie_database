@@ -1,4 +1,8 @@
+import dbconn.DBConnection;
+
+import javax.swing.plaf.nimbus.State;
 import java.io.*;
+import java.sql.*;
 import java.util.*;
 
 public class Main {
@@ -40,9 +44,76 @@ public class Main {
     }
 
     public static void main(String[] args) {
-        Scanner sc = new Scanner(System.in);
+        Connection conn = DBConnection.getDBConnection();
         Map<String, Film> filmyMapa = new HashMap<>();
         Map<String, Osoba> osobyMapa = new HashMap<>();
+
+        try {
+            PreparedStatement prStmt = conn.prepareStatement("SELECT * FROM Osoba");
+            ResultSet rs = prStmt.executeQuery();
+            while (rs.next()) {
+                String meno = rs.getString("meno");
+                Osoba o = new Osoba(meno);
+                osobyMapa.put(meno, o);
+            }
+
+            PreparedStatement prStmt2 = conn.prepareStatement("SELECT * FROM Film");
+            ResultSet rs2 = prStmt2.executeQuery();
+            while (rs2.next()) {
+                String nazov = rs2.getString("nazov");
+                String reziser = rs2.getString("reziser");
+                String typFilmu = rs2.getString("typFilmu");
+                int rok = rs2.getInt("rok");
+                int minVekDivaka = rs2.getInt("minVekDivaka");
+                Film f = null;
+                if (Objects.equals(typFilmu, "a")) {
+                    f = new AnimovanyFilm(nazov, reziser, rok, new ArrayList<>(), minVekDivaka);
+                }
+                else if (Objects.equals(typFilmu, "h")) {
+                    f = new HranyFilm(nazov, reziser, rok, new ArrayList<>());
+                }
+                filmyMapa.put(nazov, f);
+            }
+
+            PreparedStatement prStmt3 = conn.prepareStatement("SELECT * FROM FilmOsoba");
+            ResultSet rs3 = prStmt3.executeQuery();
+            while (rs3.next()) {
+                String meno = rs3.getString("meno");
+                String nazov = rs3.getString("nazov");
+                if (osobyMapa.containsKey(meno) && filmyMapa.containsKey(nazov)) {
+                    Osoba o = osobyMapa.get(meno);
+                    Film f = filmyMapa.get(nazov);
+                    o.addFilm(f);
+                    f.addOsoba(o);
+                }
+            }
+
+            PreparedStatement prStmt4 = conn.prepareStatement("SELECT * FROM Hodnotenie");
+            ResultSet rs4 = prStmt4.executeQuery();
+            while (rs4.next()) {
+                String slovnyKomentar = rs4.getString("slovnyKomentar");
+                String nazov = rs4.getString("nazov");
+                int bodoveHodnotenie = rs4.getInt("bodoveHodnotenie");
+                if (filmyMapa.containsKey(nazov)) {
+                    Film f = filmyMapa.get(nazov);
+                    if (f instanceof AnimovanyFilm) {
+                        HodnotenieCislo h = new HodnotenieCislo(bodoveHodnotenie, slovnyKomentar);
+                        ((AnimovanyFilm) f).addHodnotenieCislo(h);
+                    }
+                    else {
+                        HodnotenieHviezdy h = new HodnotenieHviezdy(bodoveHodnotenie, slovnyKomentar);
+                        ((HranyFilm) f).addHodnotenieHviezdy(h);
+                    }
+                }
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+
+        Scanner sc = new Scanner(System.in);
         int volba;
         boolean run = true;
         while (run) {
@@ -482,5 +553,103 @@ public class Main {
             }
 
         }
+
+        try {
+            Statement stmnt = conn.createStatement();
+            stmnt.execute("DROP TABLE IF EXISTS Osoba");
+            stmnt.execute("DROP TABLE IF EXISTS Film");
+            stmnt.execute("DROP TABLE IF EXISTS Hodnotenie");
+            stmnt.execute("DROP TABLE IF EXISTS FilmOsoba");
+            stmnt.execute(
+            "CREATE TABLE IF NOT EXISTS Osoba(\n" +
+                "   meno VARCHAR(100) NOT NULL,\n" +
+                "   PRIMARY KEY (meno)\n" +
+                ");"
+            );
+            stmnt.execute(
+            "CREATE TABLE IF NOT EXISTS Film(\n" +
+                "   reziser VARCHAR(100) NOT NULL,\n" +
+                "   nazov VARCHAR(100) NOT NULL,\n" +
+                "   rok INT NOT NULL,\n" +
+                "   minVekDivaka INT,\n" +
+                "   typFilmu CHAR(1) NOT NULL,\n" +
+                "   PRIMARY KEY (nazov)\n" +
+                ");"
+            );
+            stmnt.execute(
+            "CREATE TABLE IF NOT EXISTS Hodnotenie(\n" +
+                "   bodoveHodnotenie INT NOT NULL,\n" +
+                "   slovnyKomentar VARCHAR(200),\n" +
+                "   nazov VARCHAR(100) NOT NULL,\n" +
+                "   FOREIGN KEY (nazov) REFERENCES Film(nazov)\n" +
+                ");"
+            );
+            stmnt.execute(
+            "CREATE TABLE IF NOT EXISTS FilmOsoba(\n" +
+                "   meno VARCHAR(100) NOT NULL,\n" +
+                "   nazov VARCHAR(100) NOT NULL,\n" +
+                "   PRIMARY KEY (meno, nazov),\n" +
+                "   FOREIGN KEY (meno) REFERENCES Osoba(meno),\n" +
+                "   FOREIGN KEY (nazov) REFERENCES Film(nazov)\n" +
+                ");"
+            );
+
+            String insertOsoba = "INSERT INTO Osoba (meno) VALUES (?)";
+            for (Osoba osoba : osobyMapa.values()) {
+                PreparedStatement prStmt = conn.prepareStatement(insertOsoba);
+                prStmt.setString(1, osoba.getMeno());
+                prStmt.executeUpdate();
+            }
+
+            String insertFilm = "INSERT INTO Film (typFilmu, nazov, reziser, rok, minVekDivaka) VALUES (?,?,?,?,?)";
+            String insertFilmOsoba = "INSERT INTO FilmOsoba (meno, nazov) VALUES (?,?)";
+            String insertHodnotenie = "INSERT INTO Hodnotenie (bodoveHodnotenie, slovnyKomentar, nazov) VALUES (?,?,?)";
+            for (Film film : filmyMapa.values()) {
+                PreparedStatement prStmt = conn.prepareStatement(insertFilm);
+                String typFilmu = film instanceof AnimovanyFilm ? "a" : "h";
+                prStmt.setString(1, typFilmu);
+                prStmt.setString(2, film.getNazov());
+                prStmt.setString(3, film.getReziser());
+                prStmt.setInt(4, film.getRok());
+                Integer vek = null;
+                if (film instanceof AnimovanyFilm) {
+                    vek = ((AnimovanyFilm) film).getMinVekDivaka();
+                }
+                prStmt.setObject(5, vek);
+                prStmt.executeUpdate();
+
+                for (Osoba osoba : film.getZoznamOsob()) {
+                    PreparedStatement prStmt2 = conn.prepareStatement(insertFilmOsoba);
+                    prStmt2.setString(1, osoba.getMeno());
+                    prStmt2.setString(2, film.getNazov());
+                    prStmt2.executeUpdate();
+                }
+
+                if (film instanceof AnimovanyFilm) {
+                    for (HodnotenieCislo h : ((AnimovanyFilm) film).getHodnoteniaCislo()) {
+                        PreparedStatement prStmt3 = conn.prepareStatement(insertHodnotenie);
+                        prStmt3.setInt(1, h.getBodoveHodnotenie());
+                        prStmt3.setString(2, h.getSlovnyKomantar());
+                        prStmt3.setString(3, film.getNazov());
+                        prStmt3.executeUpdate();
+                    }
+                }
+                else {
+                    for (HodnotenieHviezdy h : ((HranyFilm) film).getHodnoteniaHviezdy()) {
+                        PreparedStatement prStmt3 = conn.prepareStatement(insertHodnotenie);
+                        prStmt3.setInt(1, h.getBodoveHodnotenie());
+                        prStmt3.setString(2, h.getSlovnyKomantar());
+                        prStmt3.setString(3, film.getNazov());
+                        prStmt3.executeUpdate();
+                    }
+                }
+
+            }
+
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+
+        DBConnection.closeConnection();
     }
 }
